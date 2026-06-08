@@ -1,21 +1,54 @@
-# Rust build artifacts
+# ====================== Logs ======================
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# ====================== Dependencies & Runtime ======================
+node_modules
+.pnp
+.pnp.js
+
+# ====================== Build Output ======================
+dist
+dist-ssr
+build
+out
+
+# ====================== Local Environment & Temp Files ======================
+*.local
+*.tmp
+
+# Environment variables (sensitive config)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+
+# ====================== Rust Project Related ======================
 target/
 Cargo.lock
 
-# Project runtime dir & temp files
+# Project custom runtime directories
 .lunar/*.log
 .lunar/*.tmp
 .lunar/cache/
-*.log
-*.tmp
 
-# IDE & editor files
-.vscode/
-.idea/
-*.swp
-*.swo
-*~
+# ====================== TypeScript & Test Cache ======================
+*.tsbuildinfo
+coverage/
 
-# System files
+# ====================== Editor & System Files ======================
+.vscode/*
+!.vscode/extensions.json
+.idea
 .DS_Store
-Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
