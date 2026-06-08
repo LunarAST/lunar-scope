@@ -2,89 +2,88 @@
   "version": "0.5.0",
   "projects": [
     {
+      "name": "api-gateway",
+      "type": "client",
+      "sha": "aaa111",
+      "scanStatus": "success",
+      "interfaces": {
+        "exposed": [
+          {"path": "/gateway/health", "method": "GET"}
+        ],
+        "consumed": [
+          {"path": "/users", "method": "GET", "targetProject": "user-service"},
+          {"path": "/users", "method": "POST", "targetProject": "user-service"},
+          {"path": "/auth/verify", "method": "GET", "targetProject": "auth-service"},
+          {"path": "/orders", "method": "POST", "targetProject": "order-service"}
+        ]
+      }
+    },
+    {
       "name": "auth-service",
       "type": "service",
-      "sha": "abc123",
+      "sha": "bbb222",
       "scanStatus": "success",
       "interfaces": {
         "exposed": [
           {"path": "/auth/verify", "method": "GET"},
+          {"path": "/auth/login", "method": "POST"},
           {"path": "/auth/debug", "method": "GET"}
         ],
         "consumed": [
-          {"path": "/users", "method": "POST", "targetProject": "user-service"}
+          {"path": "/users", "method": "GET", "targetProject": "user-service"}
         ]
       }
     },
     {
       "name": "user-service",
       "type": "service",
-      "sha": "def456",
+      "sha": "ccc333",
       "scanStatus": "success",
       "interfaces": {
         "exposed": [
-          {"path": "/users", "method": "POST"}
+          {"path": "/users", "method": "GET"},
+          {"path": "/users", "method": "POST"},
+          {"path": "/users/legacy", "method": "DELETE"}
         ],
         "consumed": [
-          {"path": "/auth/verify", "method": "GET", "targetProject": "auth-service"},
-          {"path": "/billing/invoice", "method": "GET", "targetProject": "billing-service"}
+          {"path": "/auth/verify", "method": "GET", "targetProject": "auth-service"}
         ]
+      }
+    },
+    {
+      "name": "order-service",
+      "type": "service",
+      "sha": "ddd444",
+      "scanStatus": "failed",
+      "interfaces": {
+        "exposed": [
+          {"path": "/orders", "method": "POST"}
+        ],
+        "consumed": []
       }
     }
   ],
   "alignments": [
-    {
-      "clientProject": "auth-service",
-      "serverProject": "user-service",
-      "path": "/users",
-      "method": "POST",
-      "status": "Aligned"
-    },
-    {
-      "clientProject": "user-service",
-      "serverProject": "auth-service",
-      "path": "/auth/verify",
-      "method": "GET",
-      "status": "Aligned"
-    },
-    {
-      "clientProject": "user-service",
-      "serverProject": "billing-service",
-      "path": "/billing/invoice",
-      "method": "GET",
-      "status": "Orphaned"
-    }
+    {"clientProject": "api-gateway", "serverProject": "user-service", "path": "/users", "method": "GET", "status": "Aligned"},
+    {"clientProject": "api-gateway", "serverProject": "user-service", "path": "/users", "method": "POST", "status": "Aligned"},
+    {"clientProject": "api-gateway", "serverProject": "auth-service", "path": "/auth/verify", "method": "GET", "status": "Aligned"},
+    {"clientProject": "auth-service", "serverProject": "user-service", "path": "/users", "method": "GET", "status": "Aligned"},
+    {"clientProject": "user-service", "serverProject": "auth-service", "path": "/auth/verify", "method": "GET", "status": "Aligned"},
+    {"clientProject": "api-gateway", "serverProject": "order-service", "path": "/orders", "method": "POST", "status": "Unverified"}
   ],
   "aggregatedEdges": [
-    {
-      "clientProject": "auth-service",
-      "serverProject": "user-service",
-      "callCount": 1,
-      "status": "Aligned",
-      "paths": ["POST /users"]
-    },
-    {
-      "clientProject": "user-service",
-      "serverProject": "auth-service",
-      "callCount": 1,
-      "status": "Aligned",
-      "paths": ["GET /auth/verify"]
-    },
-    {
-      "clientProject": "user-service",
-      "serverProject": "billing-service",
-      "callCount": 1,
-      "status": "Orphaned",
-      "paths": ["GET /billing/invoice"]
-    }
+    {"clientProject": "api-gateway", "serverProject": "user-service", "callCount": 2, "status": "Aligned", "paths": ["GET /users", "POST /users"]},
+    {"clientProject": "api-gateway", "serverProject": "auth-service", "callCount": 1, "status": "Aligned", "paths": ["GET /auth/verify"]},
+    {"clientProject": "auth-service", "serverProject": "user-service", "callCount": 1, "status": "Aligned", "paths": ["GET /users"]},
+    {"clientProject": "user-service", "serverProject": "auth-service", "callCount": 1, "status": "Aligned", "paths": ["GET /auth/verify"]},
+    {"clientProject": "api-gateway", "serverProject": "order-service", "callCount": 1, "status": "Unverified", "paths": ["POST /orders"]}
   ],
   "anomalies": {
     "unusedEndpoints": [
-      {"project": "auth-service", "path": "/auth/debug", "method": "GET"}
+      {"project": "auth-service", "path": "/auth/debug", "method": "GET"},
+      {"project": "user-service", "path": "/users/legacy", "method": "DELETE"}
     ],
-    "orphanedConsumers": [
-      {"project": "user-service", "path": "/billing/invoice", "method": "GET"}
-    ],
+    "orphanedConsumers": [],
     "crossLayerViolations": []
   }
 }

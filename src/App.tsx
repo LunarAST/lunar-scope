@@ -34,6 +34,12 @@ const METHOD_COLORS: Record<string, string> = {
   PATCH: "var(--lunar-method-put-text)",
 };
 
+const METHOD_BG_COLORS: Record<string, string> = {
+  GET: "var(--lunar-method-get-bg)", POST: "var(--lunar-method-post-bg)",
+  PUT: "var(--lunar-method-put-bg)", DELETE: "var(--lunar-method-delete-bg)",
+  PATCH: "var(--lunar-method-put-bg)",
+};
+
 function determinePortStatus(method: string, path: string, project: string, isExposed: boolean, data: LunarMap): "aligned" | "orphaned" | "unused" | "mismatch" {
   if (isExposed) {
     const used = data.alignments.some(
@@ -151,11 +157,7 @@ function App() {
     return {
       ...n,
       data: { ...n.data, isFocused, isAnomalyHighlight: !!isAnomalyHighlight, isHovered },
-      style: {
-        ...n.style,
-        opacity: (isFocused || isAnomalyHighlight) ? 1 : "var(--lunar-spotlight-dim)",
-        transition: "opacity 0.2s",
-      },
+      style: { ...n.style, opacity: (isFocused || isAnomalyHighlight) ? 1 : "var(--lunar-spotlight-dim)", transition: "opacity 0.2s" },
     };
   }), [nodes, selectedEdge, hoveredNodeId, highlightAnomaly]);
 
@@ -164,7 +166,6 @@ function App() {
     const isHovered = e.id === hoveredEdgeId;
     const status = edgeMapRef.current.get(e.id)?.status ?? "Aligned";
     const baseStyle = STATUS_STYLE[status] ?? STATUS_STYLE.Aligned;
-
     return {
       ...e,
       animated: !!isSelected,
@@ -204,17 +205,14 @@ function App() {
       </ReactFlow>
 
       {/* 左侧异常面板按钮 */}
-      <button
-        onClick={() => setShowAnomalies(!showAnomalies)}
-        style={{
-          position: "fixed", left: showAnomalies ? 328 : 12, top: 12, zIndex: 910,
-          background: "var(--lunar-card-bg)", border: "1px solid var(--lunar-card-border)",
-          borderRadius: 6, color: totalAnomalies > 0 ? "#F59E0B" : "var(--lunar-text-secondary)",
-          padding: "8px 12px", cursor: "pointer", fontSize: 13,
-          display: "flex", alignItems: "center", gap: 6,
-          boxShadow: "0 2px 8px rgba(0,0,0,0.3)", transition: "left 0.25s ease-in-out",
-        }}
-      >
+      <button onClick={() => setShowAnomalies(!showAnomalies)} style={{
+        position: "fixed", left: showAnomalies ? 328 : 12, top: 12, zIndex: 910,
+        background: "var(--lunar-card-bg)", border: "1px solid var(--lunar-card-border)",
+        borderRadius: 6, color: totalAnomalies > 0 ? "#F59E0B" : "var(--lunar-text-secondary)",
+        padding: "8px 12px", cursor: "pointer", fontSize: 13,
+        display: "flex", alignItems: "center", gap: 6,
+        boxShadow: "0 2px 8px rgba(0,0,0,0.3)", transition: "left 0.25s ease-in-out",
+      }}>
         <span>🔍</span>
         {totalAnomalies > 0 && <span style={{ fontWeight: 700, color: "#F59E0B" }}>{totalAnomalies}</span>}
       </button>
@@ -240,30 +238,30 @@ function App() {
         <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
           {data.anomalies.unusedEndpoints.length > 0 && (
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--lunar-text-muted)", marginBottom: 8, letterSpacing: "0.05em" }}>
+              <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--lunar-text-muted)", marginBottom: 12, letterSpacing: "0.05em" }}>
                 Unused Endpoints
               </div>
               {data.anomalies.unusedEndpoints.map((ep, i) => (
                 <div key={i} onClick={() => { setHighlightAnomaly(ep); setSelectedEdge(null); setSelectedNode(null); }}
-                  style={{ padding: "8px 10px", marginBottom: 4, background: highlightAnomaly === ep ? "#27272a" : "transparent", borderRadius: 4, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, fontSize: 12, border: highlightAnomaly === ep ? "1px solid #4B5563" : "1px solid transparent", transition: "background 0.15s" }}>
-                  <span style={{ color: "var(--lunar-text-muted)", fontWeight: "bold", width: 36 }}>{ep.method}</span>
-                  <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace" }}>{ep.path}</span>
-                  <span style={{ marginLeft: "auto", color: "var(--lunar-text-muted)", fontSize: 10 }}>{ep.project}</span>
+                  style={{ padding: "10px 10px", marginBottom: 4, background: highlightAnomaly === ep ? "#27272a" : "transparent", borderRadius: 4, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, fontSize: 12, lineHeight: "18px", border: highlightAnomaly === ep ? "1px solid var(--lunar-text-secondary)" : "1px solid transparent", transition: "background 0.15s" }}>
+                  <span style={{ color: "var(--lunar-text-muted)", fontWeight: "bold", width: 36, flexShrink: 0 }}>{ep.method}</span>
+                  <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace", wordBreak: "break-all" }}>{ep.path}</span>
+                  <span style={{ marginLeft: "auto", color: "var(--lunar-text-muted)", fontSize: 10, flexShrink: 0 }}>{ep.project}</span>
                 </div>
               ))}
             </div>
           )}
           {data.anomalies.orphanedConsumers.length > 0 && (
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 11, textTransform: "uppercase", color: "#F59E0B", marginBottom: 8, letterSpacing: "0.05em" }}>
+              <div style={{ fontSize: 11, textTransform: "uppercase", color: "#F59E0B", marginBottom: 12, letterSpacing: "0.05em" }}>
                 Orphaned Consumers
               </div>
               {data.anomalies.orphanedConsumers.map((ep, i) => (
                 <div key={i} onClick={() => { setHighlightAnomaly(ep); setSelectedEdge(null); setSelectedNode(null); }}
-                  style={{ padding: "8px 10px", marginBottom: 4, background: highlightAnomaly === ep ? "#27272a" : "transparent", borderRadius: 4, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, fontSize: 12, border: highlightAnomaly === ep ? "1px solid #F59E0B55" : "1px solid transparent", transition: "background 0.15s" }}>
-                  <span style={{ color: "#F59E0B", fontWeight: "bold", width: 36 }}>{ep.method}</span>
-                  <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace" }}>{ep.path}</span>
-                  <span style={{ marginLeft: "auto", color: "#F59E0B", fontSize: 10 }}>{ep.project}</span>
+                  style={{ padding: "10px 10px", marginBottom: 4, background: highlightAnomaly === ep ? "#27272a" : "transparent", borderRadius: 4, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, fontSize: 12, lineHeight: "18px", border: highlightAnomaly === ep ? "1px solid #F59E0B55" : "1px solid transparent", transition: "background 0.15s" }}>
+                  <span style={{ color: "#F59E0B", fontWeight: "bold", width: 36, flexShrink: 0 }}>{ep.method}</span>
+                  <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace", wordBreak: "break-all" }}>{ep.path}</span>
+                  <span style={{ marginLeft: "auto", color: "#F59E0B", fontSize: 10, flexShrink: 0 }}>{ep.project}</span>
                 </div>
               ))}
             </div>
@@ -288,10 +286,10 @@ function App() {
             {activeAlignments.slice(0, 5).map((a, i) => {
               const mStyle = METHOD_BADGE[a.method] ?? { bg: "#27272a", text: "#e5e7eb", border: "#3f3f46" };
               return (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 3 }}>
-                  <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 4, background: METHOD_COLORS[a.method] || "#6B7280" }} />
-                  <span style={{ color: METHOD_COLORS[a.method] || "var(--lunar-text-secondary)", fontWeight: 600 }}>{a.method}</span>
-                  <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace" }}>{a.path}</span>
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, padding: "4px 0" }}>
+                  <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 4, background: METHOD_COLORS[a.method] || "#6B7280", flexShrink: 0 }} />
+                  <span style={{ color: METHOD_COLORS[a.method] || "var(--lunar-text-secondary)", fontWeight: 600, flexShrink: 0 }}>{a.method}</span>
+                  <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace", wordBreak: "break-all" }}>{a.path}</span>
                 </div>
               );
             })}
@@ -312,16 +310,15 @@ function App() {
             {selectedNode.interfaces.exposed.map((e, i) => {
               const status = data ? determinePortStatus(e.method, e.path, selectedNode.name, true, data) : "aligned";
               return (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, paddingLeft: 8 }}>
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, padding: "3px 0 3px 8px" }}>
                   <span style={{
-                    display: "inline-block", width: 8, height: 8,
-                    borderRadius: "50%",
-                    background: status === "unused" ? "var(--lunar-theme-bg)" : (METHOD_COLORS[e.method] || "#6B7280"),
+                    display: "inline-block", width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+                    background: status === "unused" ? (METHOD_BG_COLORS[e.method] || "rgba(107, 114, 128, 0.1)") : (METHOD_COLORS[e.method] || "#6B7280"),
                     border: `2px solid ${status === "unused" ? "var(--lunar-text-secondary)" : (METHOD_COLORS[e.method] || "#6B7280")}`,
                   }} />
-                  <span style={{ color: METHOD_COLORS[e.method] || "var(--lunar-text-secondary)", fontWeight: 600 }}>{e.method}</span>
-                  <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace" }}>{e.path}</span>
-                  {status === "unused" && <span style={{ color: "var(--lunar-text-muted)", fontSize: 10 }}>(unused)</span>}
+                  <span style={{ color: METHOD_COLORS[e.method] || "var(--lunar-text-secondary)", fontWeight: 600, flexShrink: 0 }}>{e.method}</span>
+                  <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace", wordBreak: "break-all" }}>{e.path}</span>
+                  {status === "unused" && <span style={{ color: "var(--lunar-text-muted)", fontSize: 10, flexShrink: 0 }}>(unused)</span>}
                 </div>
               );
             })}
@@ -331,17 +328,17 @@ function App() {
             {selectedNode.interfaces.consumed.map((e, i) => {
               const status = data ? determinePortStatus(e.method, e.path, selectedNode.name, false, data) : "aligned";
               return (
-                <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, paddingLeft: 8 }}>
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, padding: "3px 0 3px 8px" }}>
                   <span style={{
-                    display: "inline-block", width: 8, height: 8,
+                    display: "inline-block", width: 8, height: 8, flexShrink: 0,
                     borderRadius: status === "orphaned" ? "30%" : "50%",
-                    background: status === "orphaned" ? "var(--lunar-theme-bg)" : (METHOD_COLORS[e.method] || "#6B7280"),
+                    background: status === "orphaned" ? (METHOD_BG_COLORS[e.method] || "rgba(245, 158, 11, 0.1)") : (METHOD_COLORS[e.method] || "#6B7280"),
                     border: `2px solid ${status === "orphaned" ? "#F59E0B" : (METHOD_COLORS[e.method] || "#6B7280")}`,
                   }} />
-                  <span style={{ color: METHOD_COLORS[e.method] || "var(--lunar-text-secondary)", fontWeight: 600 }}>{e.method}</span>
-                  <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace" }}>{e.path}</span>
-                  {e.targetProject && <span style={{ color: "var(--lunar-text-muted)", fontSize: 10 }}>→ {e.targetProject}</span>}
-                  {status === "orphaned" && <span style={{ color: "#F59E0B", fontSize: 10 }}>(orphaned)</span>}
+                  <span style={{ color: METHOD_COLORS[e.method] || "var(--lunar-text-secondary)", fontWeight: 600, flexShrink: 0 }}>{e.method}</span>
+                  <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace", wordBreak: "break-all" }}>{e.path}</span>
+                  {e.targetProject && <span style={{ color: "var(--lunar-text-muted)", fontSize: 10, flexShrink: 0 }}>→ {e.targetProject}</span>}
+                  {status === "orphaned" && <span style={{ color: "#F59E0B", fontSize: 10, flexShrink: 0 }}>(orphaned)</span>}
                 </div>
               );
             })}

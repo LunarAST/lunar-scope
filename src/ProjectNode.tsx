@@ -26,6 +26,15 @@ const METHOD_VAR: Record<string, string> = {
   PATCH: "var(--lunar-method-put-text)",
 };
 
+// 方法对应的半透明填充色（用于空心端口）
+const METHOD_BG_VAR: Record<string, string> = {
+  GET: "var(--lunar-method-get-bg)",
+  POST: "var(--lunar-method-post-bg)",
+  PUT: "var(--lunar-method-put-bg)",
+  DELETE: "var(--lunar-method-delete-bg)",
+  PATCH: "var(--lunar-method-put-bg)",
+};
+
 const PORT_SIZE = 8;
 const PORT_GAP = 14;
 
@@ -43,7 +52,6 @@ export default memo(function ProjectNode({ data }: { data: ProjectNodeData }) {
     ...data.consumed.map(p => `  ${p.method} ${p.path} → ${p.targetProject || "?"} [${p.status}]`),
   ].join("\n");
 
-  // 根据状态决定边框颜色和外发光
   let borderColor = `var(--lunar-node-border-${data.type})`;
   let boxShadow = "none";
   if (data.isAnomalyHighlight) {
@@ -90,7 +98,7 @@ export default memo(function ProjectNode({ data }: { data: ProjectNodeData }) {
               width: PORT_SIZE,
               height: PORT_SIZE,
               background: p.status === "unused"
-                ? "var(--lunar-theme-bg)"
+                ? (METHOD_BG_VAR[p.method] || "rgba(107, 114, 128, 0.1)")
                 : (METHOD_VAR[p.method] || "#6B7280"),
               border: `2px solid ${p.status === "unused" ? "var(--lunar-text-secondary)" : (METHOD_VAR[p.method] || "#6B7280")}`,
               borderRadius: "50%",
@@ -116,7 +124,7 @@ export default memo(function ProjectNode({ data }: { data: ProjectNodeData }) {
               width: PORT_SIZE,
               height: PORT_SIZE,
               background: p.status === "orphaned"
-                ? "var(--lunar-theme-bg)"
+                ? (METHOD_BG_VAR[p.method] || "rgba(245, 158, 11, 0.1)")
                 : (METHOD_VAR[p.method] || "#6B7280"),
               border: `2px solid ${p.status === "orphaned" ? "#F59E0B" : (METHOD_VAR[p.method] || "#6B7280")}`,
               borderRadius: p.status === "orphaned" ? "30%" : "50%",
