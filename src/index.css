@@ -1,20 +1,42 @@
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+* { margin: 0; padding: 0; box-sizing: border-box; }
 
-html, body, #root {
-  width: 100%;
-  height: 100%;
-  background: #0B0B0C;
-  font-family: system-ui, -apple-system, sans-serif;
-}
+html, body, #root { width: 100%; height: 100%; background: var(--lunar-theme-bg); font-family: system-ui, -apple-system, sans-serif; }
 
-.react-flow__node {
-  font-size: 13px;
-}
+.react-flow__node { font-size: 13px; }
+.react-flow__edge-path { stroke-width: 2; }
 
-.react-flow__edge-path {
-  stroke-width: 2;
+:root {
+  --lunar-theme-bg: #0B0B0C;
+  --lunar-theme-grid: #1C1C1E;
+  --lunar-text-primary: #F4F4F5;
+  --lunar-text-secondary: #A1A1AA;
+  --lunar-text-muted: #52525B;
+  --lunar-node-bg: #121214;
+  --lunar-node-border: #222226;
+  --lunar-node-border-service: #10B981;
+  --lunar-node-border-client: #3B82F6;
+  --lunar-node-border-mixed: #F59E0B;
+  --lunar-node-padding: 8px 12px;
+  --lunar-node-radius: 6px;
+  --lunar-node-min-width: 150px;
+  --lunar-edge-aligned: #10B981;
+  --lunar-edge-param-mismatch: #3B82F6;
+  --lunar-edge-orphaned: #F59E0B;
+  --lunar-edge-method-mismatch: #EF4444;
+  --lunar-edge-unverified: #52525B;
+  --lunar-method-get-bg: rgba(16, 185, 129, 0.1);
+  --lunar-method-get-text: #10B981;
+  --lunar-method-get-border: rgba(16, 185, 129, 0.2);
+  --lunar-method-post-bg: rgba(59, 130, 246, 0.1);
+  --lunar-method-post-text: #3B82F6;
+  --lunar-method-post-border: rgba(59, 130, 246, 0.2);
+  --lunar-method-put-bg: rgba(245, 158, 11, 0.1);
+  --lunar-method-put-text: #F59E0B;
+  --lunar-method-put-border: rgba(245, 158, 11, 0.2);
+  --lunar-method-delete-bg: rgba(239, 68, 68, 0.1);
+  --lunar-method-delete-text: #EF4444;
+  --lunar-method-delete-border: rgba(239, 68, 68, 0.2);
+  --lunar-card-bg: #18181b;
+  --lunar-card-border: #27272a;
+  --lunar-spotlight-dim: 0.15;
 }
