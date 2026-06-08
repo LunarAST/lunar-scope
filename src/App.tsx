@@ -6,14 +6,18 @@ import {
   applyNodeChanges, applyEdgeChanges,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
-import type { LunarMap, AggregatedEdge, ProjectInfo } from "./types";
+import type { LunarMap, AggregatedEdge, ProjectInfo, AnomalyEndpoint } from "./types";
+import ProjectNode from "./ProjectNode";
+import { computeLayout } from "./layout";
 
-const STATUS_STYLE: Record<string, { stroke: string; dashed: boolean; animated: boolean }> = {
-  Aligned:            { stroke: "var(--lunar-edge-aligned)", dashed: false, animated: false },
-  ParamNameMismatch:  { stroke: "var(--lunar-edge-param-mismatch)", dashed: true,  animated: false },
-  Orphaned:           { stroke: "var(--lunar-edge-orphaned)", dashed: true,  animated: true },
-  MethodMismatch:     { stroke: "var(--lunar-edge-method-mismatch)", dashed: false, animated: true },
-  Unverified:         { stroke: "var(--lunar-edge-unverified)", dashed: true,  animated: false },
+const nodeTypes = { projectNode: ProjectNode };
+
+const STATUS_STYLE: Record<string, { stroke: string; animated: boolean }> = {
+  Aligned:            { stroke: "var(--lunar-edge-aligned)", animated: false },
+  ParamNameMismatch:  { stroke: "var(--lunar-edge-param-mismatch)", animated: false },
+  Orphaned:           { stroke: "var(--lunar-edge-orphaned)", animated: false },
+  MethodMismatch:     { stroke: "var(--lunar-edge-method-mismatch)", animated: false },
+  Unverified:         { stroke: "var(--lunar-edge-unverified)", animated: false },
 };
 
 const METHOD_BADGE: Record<string, { bg: string; text: string; border: string }> = {
@@ -30,10 +34,26 @@ const METHOD_COLORS: Record<string, string> = {
   PATCH: "var(--lunar-method-put-text)",
 };
 
+function determinePortStatus(method: string, path: string, project: string, isExposed: boolean, data: LunarMap): "aligned" | "orphaned" | "unused" | "mismatch" {
+  if (isExposed) {
+    const used = data.alignments.some(
+      a => a.serverProject === project && a.path === path && a.method === method && a.status !== "Orphaned"
+    );
+    return used ? "aligned" : "unused";
+  } else {
+    const aligned = data.alignments.some(
+      a => a.clientProject === project && a.path === path && a.method === method && a.status !== "Orphaned"
+    );
+    return aligned ? "aligned" : "orphaned";
+  }
+}
+
 function App() {
   const [data, setData] = useState<LunarMap | null>(null);
   const [selectedEdge, setSelectedEdge] = useState<AggregatedEdge | null>(null);
   const [selectedNode, setSelectedNode] = useState<ProjectInfo | null>(null);
+  const [showAnomalies, setShowAnomalies] = useState(false);
+  const [highlightAnomaly, setHighlightAnomaly] = useState<AnomalyEndpoint | null>(null);
   const edgeMapRef = useRef<Map<string, AggregatedEdge>>(new Map());
   const [nodes, setNodes] = useState<Node[]>([]);
   const [edges, setEdges] = useState<Edge[]>([]);
@@ -43,57 +63,65 @@ function App() {
   useEffect(() => {
     fetch("/lunar-map.json")
       .then((r) => r.json())
-      .then((json) => {
+      .then(async (json) => {
         const d = json as LunarMap;
         setData(d);
-        const newNodes: Node[] = d.projects.map((p, i) => ({
-          id: p.name, type: "default",
-          data: {
-            label: (
-              <div
-                title={`${p.name}\nExposed: ${p.interfaces.exposed.length} · Consumed: ${p.interfaces.consumed.length}`}
-                style={{ padding: "var(--lunar-node-padding)", cursor: "pointer" }}
-              >
-                <strong>{p.name}</strong>
-                <div style={{ fontSize: 10, color: "var(--lunar-text-secondary)", marginTop: 2 }}>
-                  {p.interfaces.exposed.map((e, j) => (
-                    <span key={j} style={{
-                      display: "inline-block", width: 6, height: 6, borderRadius: 3,
-                      background: METHOD_COLORS[e.method] || "#6B7280", marginRight: 2,
-                    }} />
-                  ))}
-                  <span style={{ margin: "0 3px" }}>|</span>
-                  {p.interfaces.consumed.map((e, j) => (
-                    <span key={j} style={{
-                      display: "inline-block", width: 6, height: 6, borderRadius: 3,
-                      background: METHOD_COLORS[e.method] || "#6B7280", marginRight: 2,
-                    }} />
-                  ))}
-                </div>
-              </div>
-            ),
-          },
-          position: { x: 80 + i * 260, y: 200 },
-          style: {
-            background: "var(--lunar-node-bg)", color: "var(--lunar-text-primary)",
-            border: `1px solid var(--lunar-node-border-${p.type})`,
-            borderRadius: "var(--lunar-node-radius)", minWidth: "var(--lunar-node-min-width)",
-          },
-        }));
+
+        const rawNodes: Node[] = d.projects.map((p) => {
+          const nodeHeight = Math.max(40, Math.max(p.interfaces.exposed.length, p.interfaces.consumed.length) * 14 + 20);
+          return {
+            id: p.name,
+            type: "projectNode",
+            data: {
+              name: p.name,
+              type: p.type,
+              exposed: p.interfaces.exposed.map(e => ({
+                ...e,
+                status: determinePortStatus(e.method, e.path, p.name, true, d),
+              })),
+              consumed: p.interfaces.consumed.map(e => ({
+                ...e,
+                status: determinePortStatus(e.method, e.path, p.name, false, d),
+              })),
+              isFocused: true,
+              isAnomalyHighlight: false,
+              isHovered: false,
+            },
+            position: { x: 0, y: 0 },
+            style: { height: nodeHeight, width: 160 },
+          };
+        });
+
         const map = new Map<string, AggregatedEdge>();
-        const newEdges: Edge[] = d.aggregatedEdges.map((e, i) => {
+        const rawEdges: Edge[] = d.aggregatedEdges.map((e, i) => {
           const edgeId = `${e.clientProject}->${e.serverProject}-${i}`;
           map.set(edgeId, e);
           const style = STATUS_STYLE[e.status] ?? STATUS_STYLE.Aligned;
           return {
             id: edgeId, source: e.clientProject, target: e.serverProject,
-            label: `${e.callCount} call${e.callCount > 1 ? "s" : ""}`,
-            style: { stroke: style.stroke, strokeWidth: 2 },
-            markerEnd: { type: MarkerType.ArrowClosed, color: style.stroke },
+            style: { stroke: style.stroke, strokeWidth: 1.5 },
+            markerEnd: { type: MarkerType.ArrowClosed, color: style.stroke, width: 14, height: 14 },
           };
         });
         edgeMapRef.current = map;
-        setNodes(newNodes); setEdges(newEdges);
+
+        try {
+          const positions = await computeLayout(
+            rawNodes.map(n => ({ id: n.id, width: 160, height: (n.style as any)?.height || 60 })),
+            rawEdges.map(e => ({ id: e.id, source: e.source, target: e.target }))
+          );
+          if (positions.length > 0) {
+            for (const n of rawNodes) {
+              const pos = positions.find(p => p.id === n.id);
+              if (pos) n.position = { x: pos.x, y: pos.y };
+            }
+          }
+        } catch {
+          rawNodes.forEach((n, i) => { n.position = { x: 80 + i * 300, y: 100 }; });
+        }
+
+        setNodes(rawNodes);
+        setEdges(rawEdges);
       });
   }, []);
 
@@ -109,7 +137,7 @@ function App() {
     setSelectedNode(p ?? null);
     setSelectedEdge(null);
   }, [data]);
-  const onPaneClick = useCallback(() => { setSelectedEdge(null); setSelectedNode(null); }, []);
+  const onPaneClick = useCallback(() => { setSelectedEdge(null); setSelectedNode(null); setHighlightAnomaly(null); }, []);
 
   const activeAlignments = useMemo(() => {
     if (!selectedEdge || !data) return [];
@@ -118,23 +146,53 @@ function App() {
 
   const styledNodes = useMemo(() => nodes.map((n) => {
     const isFocused = !selectedEdge || n.id === selectedEdge?.clientProject || n.id === selectedEdge?.serverProject;
+    const isAnomalyHighlight = highlightAnomaly && n.id === highlightAnomaly.project;
     const isHovered = n.id === hoveredNodeId;
-    return { ...n, style: { ...n.style, opacity: isFocused ? 1 : "var(--lunar-spotlight-dim)", border: isHovered ? "1px solid #fff" : n.style?.border, boxShadow: isHovered ? "0 0 12px rgba(255,255,255,0.25)" : undefined, transition: "opacity 0.2s, border-color 0.2s, box-shadow 0.2s" } };
-  }), [nodes, selectedEdge, hoveredNodeId]);
+    return {
+      ...n,
+      data: { ...n.data, isFocused, isAnomalyHighlight: !!isAnomalyHighlight, isHovered },
+      style: {
+        ...n.style,
+        opacity: (isFocused || isAnomalyHighlight) ? 1 : "var(--lunar-spotlight-dim)",
+        transition: "opacity 0.2s",
+      },
+    };
+  }), [nodes, selectedEdge, hoveredNodeId, highlightAnomaly]);
 
   const styledEdges = useMemo(() => edges.map((e) => {
-    const isFocused = !selectedEdge || e.id.startsWith(`${selectedEdge.clientProject}->${selectedEdge.serverProject}-`);
+    const isSelected = selectedEdge && e.id.startsWith(`${selectedEdge.clientProject}->${selectedEdge.serverProject}-`);
     const isHovered = e.id === hoveredEdgeId;
-    const style = STATUS_STYLE[edgeMapRef.current.get(e.id)?.status ?? "Aligned"] ?? STATUS_STYLE.Aligned;
-    return { ...e, style: { ...e.style, opacity: isFocused ? 1 : 0.12, strokeWidth: isHovered || isFocused ? 3 : 2, stroke: isHovered ? "#ffffff" : style.stroke, transition: "opacity 0.2s, stroke-width 0.2s, stroke 0.2s" } };
+    const status = edgeMapRef.current.get(e.id)?.status ?? "Aligned";
+    const baseStyle = STATUS_STYLE[status] ?? STATUS_STYLE.Aligned;
+
+    return {
+      ...e,
+      animated: !!isSelected,
+      style: {
+        ...e.style,
+        stroke: isHovered || isSelected ? "#ffffff" : baseStyle.stroke,
+        strokeWidth: isHovered || isSelected ? 2 : 1.5,
+        opacity: selectedEdge && !isSelected ? 0.12 : 1,
+        transition: "opacity 0.2s, stroke-width 0.2s, stroke 0.2s",
+      },
+    };
   }), [edges, selectedEdge, hoveredEdgeId]);
 
-  if (!data) return (<div style={{ background: "var(--lunar-theme-bg)", color: "var(--lunar-text-primary)", height: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>Loading lunar-map.json...</div>);
+  const totalAnomalies = data
+    ? data.anomalies.unusedEndpoints.length + data.anomalies.orphanedConsumers.length
+    : 0;
+
+  if (!data) return (
+    <div style={{ background: "var(--lunar-theme-bg)", color: "var(--lunar-text-primary)", height: "100vh", display: "flex", alignItems: "center", justifyContent: "center" }}>
+      Loading lunar-map.json...
+    </div>
+  );
 
   return (
     <div style={{ width: "100vw", height: "100vh", background: "var(--lunar-theme-bg)" }}>
       <ReactFlow
         nodes={styledNodes} edges={styledEdges}
+        nodeTypes={nodeTypes}
         onNodesChange={onNodesChange} onEdgesChange={onEdgesChange}
         onEdgeClick={onEdgeClick} onNodeClick={onNodeClick} onPaneClick={onPaneClick}
         onEdgeMouseEnter={(_, e) => setHoveredEdgeId(e.id)} onEdgeMouseLeave={() => setHoveredEdgeId(null)}
@@ -145,8 +203,81 @@ function App() {
         <Controls />
       </ReactFlow>
 
+      {/* 左侧异常面板按钮 */}
+      <button
+        onClick={() => setShowAnomalies(!showAnomalies)}
+        style={{
+          position: "fixed", left: showAnomalies ? 328 : 12, top: 12, zIndex: 910,
+          background: "var(--lunar-card-bg)", border: "1px solid var(--lunar-card-border)",
+          borderRadius: 6, color: totalAnomalies > 0 ? "#F59E0B" : "var(--lunar-text-secondary)",
+          padding: "8px 12px", cursor: "pointer", fontSize: 13,
+          display: "flex", alignItems: "center", gap: 6,
+          boxShadow: "0 2px 8px rgba(0,0,0,0.3)", transition: "left 0.25s ease-in-out",
+        }}
+      >
+        <span>🔍</span>
+        {totalAnomalies > 0 && <span style={{ fontWeight: 700, color: "#F59E0B" }}>{totalAnomalies}</span>}
+      </button>
+
+      {/* 左侧异常面板 */}
+      <div style={{
+        position: "fixed", left: showAnomalies ? 0 : -320, top: 0, width: 320, height: "100vh",
+        background: "var(--lunar-card-bg)", borderRight: "1px solid var(--lunar-card-border)",
+        color: "var(--lunar-text-primary)", zIndex: 900,
+        boxShadow: showAnomalies ? "4px 0 24px rgba(0,0,0,0.6)" : "none",
+        transition: "left 0.25s ease-in-out", display: "flex", flexDirection: "column",
+      }}>
+        <div style={{ padding: "20px 16px", borderBottom: "1px solid var(--lunar-card-border)" }}>
+          <h3 style={{ margin: 0, fontSize: 15, display: "flex", alignItems: "center", gap: 8 }}>
+            <span>🔍</span> Ecosystem Anomalies
+            {totalAnomalies > 0 && (
+              <span style={{ background: "#F59E0B", color: "#000", fontSize: 11, borderRadius: 10, padding: "2px 8px", fontWeight: 600 }}>
+                {totalAnomalies}
+              </span>
+            )}
+          </h3>
+        </div>
+        <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
+          {data.anomalies.unusedEndpoints.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 11, textTransform: "uppercase", color: "var(--lunar-text-muted)", marginBottom: 8, letterSpacing: "0.05em" }}>
+                Unused Endpoints
+              </div>
+              {data.anomalies.unusedEndpoints.map((ep, i) => (
+                <div key={i} onClick={() => { setHighlightAnomaly(ep); setSelectedEdge(null); setSelectedNode(null); }}
+                  style={{ padding: "8px 10px", marginBottom: 4, background: highlightAnomaly === ep ? "#27272a" : "transparent", borderRadius: 4, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, fontSize: 12, border: highlightAnomaly === ep ? "1px solid #4B5563" : "1px solid transparent", transition: "background 0.15s" }}>
+                  <span style={{ color: "var(--lunar-text-muted)", fontWeight: "bold", width: 36 }}>{ep.method}</span>
+                  <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace" }}>{ep.path}</span>
+                  <span style={{ marginLeft: "auto", color: "var(--lunar-text-muted)", fontSize: 10 }}>{ep.project}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {data.anomalies.orphanedConsumers.length > 0 && (
+            <div style={{ marginBottom: 20 }}>
+              <div style={{ fontSize: 11, textTransform: "uppercase", color: "#F59E0B", marginBottom: 8, letterSpacing: "0.05em" }}>
+                Orphaned Consumers
+              </div>
+              {data.anomalies.orphanedConsumers.map((ep, i) => (
+                <div key={i} onClick={() => { setHighlightAnomaly(ep); setSelectedEdge(null); setSelectedNode(null); }}
+                  style={{ padding: "8px 10px", marginBottom: 4, background: highlightAnomaly === ep ? "#27272a" : "transparent", borderRadius: 4, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, fontSize: 12, border: highlightAnomaly === ep ? "1px solid #F59E0B55" : "1px solid transparent", transition: "background 0.15s" }}>
+                  <span style={{ color: "#F59E0B", fontWeight: "bold", width: 36 }}>{ep.method}</span>
+                  <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace" }}>{ep.path}</span>
+                  <span style={{ marginLeft: "auto", color: "#F59E0B", fontSize: 10 }}>{ep.project}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          {totalAnomalies === 0 && (
+            <div style={{ color: "var(--lunar-text-secondary)", fontSize: 13, textAlign: "center", marginTop: 40 }}>
+              ✓ No anomalies detected
+            </div>
+          )}
+        </div>
+      </div>
+
       {/* 边线信息卡片 */}
-      {selectedEdge && (
+      {selectedEdge && !selectedNode && (
         <div style={{ position: "fixed", top: 12, right: 12, background: "var(--lunar-card-bg)", border: "1px solid var(--lunar-card-border)", borderRadius: 8, padding: 14, color: "var(--lunar-text-primary)", fontSize: 12, zIndex: 1000, boxShadow: "0 4px 16px rgba(0,0,0,0.5)", maxWidth: 320 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
             <div style={{ fontWeight: 600, fontSize: 13 }}>{selectedEdge.clientProject} → {selectedEdge.serverProject}</div>
@@ -176,28 +307,44 @@ function App() {
             <div style={{ fontWeight: 600, fontSize: 13 }}>{selectedNode.name} <span style={{ color: "var(--lunar-text-secondary)", fontWeight: 400 }}>({selectedNode.type})</span></div>
             <button onClick={() => setSelectedNode(null)} style={{ background: "none", border: "none", color: "var(--lunar-text-secondary)", fontSize: 18, cursor: "pointer", lineHeight: 1 }}>×</button>
           </div>
-
           <div style={{ marginBottom: 10 }}>
             <div style={{ color: "var(--lunar-method-get-text)", fontWeight: 600, marginBottom: 4 }}>Exposed ({selectedNode.interfaces.exposed.length})</div>
-            {selectedNode.interfaces.exposed.map((e, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, paddingLeft: 8 }}>
-                <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 4, background: METHOD_COLORS[e.method] || "#6B7280" }} />
-                <span style={{ color: METHOD_COLORS[e.method] || "var(--lunar-text-secondary)", fontWeight: 600 }}>{e.method}</span>
-                <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace" }}>{e.path}</span>
-              </div>
-            ))}
+            {selectedNode.interfaces.exposed.map((e, i) => {
+              const status = data ? determinePortStatus(e.method, e.path, selectedNode.name, true, data) : "aligned";
+              return (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, paddingLeft: 8 }}>
+                  <span style={{
+                    display: "inline-block", width: 8, height: 8,
+                    borderRadius: "50%",
+                    background: status === "unused" ? "var(--lunar-theme-bg)" : (METHOD_COLORS[e.method] || "#6B7280"),
+                    border: `2px solid ${status === "unused" ? "var(--lunar-text-secondary)" : (METHOD_COLORS[e.method] || "#6B7280")}`,
+                  }} />
+                  <span style={{ color: METHOD_COLORS[e.method] || "var(--lunar-text-secondary)", fontWeight: 600 }}>{e.method}</span>
+                  <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace" }}>{e.path}</span>
+                  {status === "unused" && <span style={{ color: "var(--lunar-text-muted)", fontSize: 10 }}>(unused)</span>}
+                </div>
+              );
+            })}
           </div>
-
           <div>
             <div style={{ color: "var(--lunar-method-post-text)", fontWeight: 600, marginBottom: 4 }}>Consumed ({selectedNode.interfaces.consumed.length})</div>
-            {selectedNode.interfaces.consumed.map((e, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, paddingLeft: 8 }}>
-                <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 4, background: METHOD_COLORS[e.method] || "#6B7280" }} />
-                <span style={{ color: METHOD_COLORS[e.method] || "var(--lunar-text-secondary)", fontWeight: 600 }}>{e.method}</span>
-                <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace" }}>{e.path}</span>
-                {e.targetProject && <span style={{ color: "var(--lunar-text-muted)", fontSize: 10 }}>→ {e.targetProject}</span>}
-              </div>
-            ))}
+            {selectedNode.interfaces.consumed.map((e, i) => {
+              const status = data ? determinePortStatus(e.method, e.path, selectedNode.name, false, data) : "aligned";
+              return (
+                <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2, paddingLeft: 8 }}>
+                  <span style={{
+                    display: "inline-block", width: 8, height: 8,
+                    borderRadius: status === "orphaned" ? "30%" : "50%",
+                    background: status === "orphaned" ? "var(--lunar-theme-bg)" : (METHOD_COLORS[e.method] || "#6B7280"),
+                    border: `2px solid ${status === "orphaned" ? "#F59E0B" : (METHOD_COLORS[e.method] || "#6B7280")}`,
+                  }} />
+                  <span style={{ color: METHOD_COLORS[e.method] || "var(--lunar-text-secondary)", fontWeight: 600 }}>{e.method}</span>
+                  <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace" }}>{e.path}</span>
+                  {e.targetProject && <span style={{ color: "var(--lunar-text-muted)", fontSize: 10 }}>→ {e.targetProject}</span>}
+                  {status === "orphaned" && <span style={{ color: "#F59E0B", fontSize: 10 }}>(orphaned)</span>}
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
