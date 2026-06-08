@@ -1,0 +1,90 @@
+{
+  "version": "0.5.0",
+  "projects": [
+    {
+      "name": "auth-service",
+      "type": "service",
+      "sha": "abc123",
+      "scanStatus": "success",
+      "interfaces": {
+        "exposed": [
+          {"path": "/auth/verify", "method": "GET"},
+          {"path": "/auth/debug", "method": "GET"}
+        ],
+        "consumed": [
+          {"path": "/users", "method": "POST", "targetProject": "user-service"}
+        ]
+      }
+    },
+    {
+      "name": "user-service",
+      "type": "service",
+      "sha": "def456",
+      "scanStatus": "success",
+      "interfaces": {
+        "exposed": [
+          {"path": "/users", "method": "POST"}
+        ],
+        "consumed": [
+          {"path": "/auth/verify", "method": "GET", "targetProject": "auth-service"},
+          {"path": "/billing/invoice", "method": "GET", "targetProject": "billing-service"}
+        ]
+      }
+    }
+  ],
+  "alignments": [
+    {
+      "clientProject": "auth-service",
+      "serverProject": "user-service",
+      "path": "/users",
+      "method": "POST",
+      "status": "Aligned"
+    },
+    {
+      "clientProject": "user-service",
+      "serverProject": "auth-service",
+      "path": "/auth/verify",
+      "method": "GET",
+      "status": "Aligned"
+    },
+    {
+      "clientProject": "user-service",
+      "serverProject": "billing-service",
+      "path": "/billing/invoice",
+      "method": "GET",
+      "status": "Orphaned"
+    }
+  ],
+  "aggregatedEdges": [
+    {
+      "clientProject": "auth-service",
+      "serverProject": "user-service",
+      "callCount": 1,
+      "status": "Aligned",
+      "paths": ["POST /users"]
+    },
+    {
+      "clientProject": "user-service",
+      "serverProject": "auth-service",
+      "callCount": 1,
+      "status": "Aligned",
+      "paths": ["GET /auth/verify"]
+    },
+    {
+      "clientProject": "user-service",
+      "serverProject": "billing-service",
+      "callCount": 1,
+      "status": "Orphaned",
+      "paths": ["GET /billing/invoice"]
+    }
+  ],
+  "anomalies": {
+    "unusedEndpoints": [
+      {"project": "auth-service", "path": "/auth/debug", "method": "GET"}
+    ],
+    "orphanedConsumers": [
+      {"project": "user-service", "path": "/billing/invoice", "method": "GET"}
+    ],
+    "crossLayerViolations": []
+  }
+}
