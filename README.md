@@ -113,6 +113,22 @@ This enables:
    - **Copy CLI Command**: copies `lunar sync --apply` command.
 4. User pastes and executes locally; `lunar` CLI handles backup and write.
 
+### 3.8 AI-Assisted Contract Maintenance
+
+AI agents (local or web-based) can assist in maintaining ecosystem contracts without privileged access to the developer's machine.
+
+1. **AI Context Acquisition**: The AI consumes `lunar-map.md` (via `lunar-serve` or a shared link) and identifies missing, broken, or incomplete contract declarations.
+2. **Suggestion Generation**: The AI outputs a standard YAML patch file conforming to the `interfaces.yml` schema. The developer saves this file to `.lunar/suggestions/<descriptive-name>.yaml`.
+3. **Review and Merge**: The developer runs `lunar sync --apply`. The CLI:
+   - Lists all pending suggestions with a diff preview.
+   - Prompts for confirmation.
+   - Backs up the current `interfaces.yml` to `.lunar/.backup/`.
+   - Merges the suggestions via field-level partial override (⊕).
+   - Moves processed suggestions to `.lunar/suggestions/merged/`.
+4. **Commit and Share**: The developer commits the updated `interfaces.yml` and archived suggestions to Git. The next `lunar map` run incorporates the new intent, benefiting all future AI and human consumers.
+
+This workflow ensures zero privilege escalation, full auditability, and a continuously improving ecosystem contract.
+
 ---
 
 ## 4. Technology Stack
