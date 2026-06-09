@@ -40,12 +40,21 @@ export interface AlignmentEntry {
   warning?: string | null;
 }
 
+export interface PortConnection {
+  path: string;
+  method: string;
+  status: string;
+  sourcePortIndex: number;
+  targetPortIndex: number;
+}
+
 export interface AggregatedEdge {
   clientProject: string;
   serverProject: string;
   callCount: number;
   status: string;
   paths: string[];
+  ports: PortConnection[];
 }
 
 export interface AnomalyEndpoint {
@@ -68,7 +77,6 @@ export interface LunarMap {
   anomalies: Anomalies;
 }
 
-/** Color mapping for HTTP methods */
 export const METHOD_COLORS: Record<string, string> = {
   GET: "#22c55e",
   POST: "#3b82f6",

@@ -24,19 +24,24 @@ html, body, #root { width: 100%; height: 100%; background: var(--lunar-theme-bg)
   --lunar-edge-orphaned: #F59E0B;
   --lunar-edge-method-mismatch: #EF4444;
   --lunar-edge-unverified: #52525B;
-  --lunar-method-get-bg: rgba(16, 185, 129, 0.1);
+  --lunar-method-get-bg: rgba(16, 185, 129, 0.25);
   --lunar-method-get-text: #10B981;
   --lunar-method-get-border: rgba(16, 185, 129, 0.2);
-  --lunar-method-post-bg: rgba(59, 130, 246, 0.1);
+  --lunar-method-post-bg: rgba(59, 130, 246, 0.25);
   --lunar-method-post-text: #3B82F6;
   --lunar-method-post-border: rgba(59, 130, 246, 0.2);
-  --lunar-method-put-bg: rgba(245, 158, 11, 0.1);
+  --lunar-method-put-bg: rgba(245, 158, 11, 0.25);
   --lunar-method-put-text: #F59E0B;
   --lunar-method-put-border: rgba(245, 158, 11, 0.2);
-  --lunar-method-delete-bg: rgba(239, 68, 68, 0.1);
+  --lunar-method-delete-bg: rgba(239, 68, 68, 0.25);
   --lunar-method-delete-text: #EF4444;
   --lunar-method-delete-border: rgba(239, 68, 68, 0.2);
   --lunar-card-bg: #18181b;
   --lunar-card-border: #27272a;
   --lunar-spotlight-dim: 0.15;
+}
+
+/* 防止背景引导线拦截点击事件 */
+.react-flow__edge[data-id$="-guide"] path {
+  pointer-events: none;
 }

@@ -18,39 +18,22 @@ interface ProjectNodeData {
   isHovered?: boolean;
 }
 
-const METHOD_VAR: Record<string, string> = {
-  GET: "var(--lunar-method-get-text)",
-  POST: "var(--lunar-method-post-text)",
-  PUT: "var(--lunar-method-put-text)",
-  DELETE: "var(--lunar-method-delete-text)",
-  PATCH: "var(--lunar-method-put-text)",
+const METHOD_COLORS: Record<string, string> = {
+  GET: "#10B981",
+  POST: "#3B82F6",
+  PUT: "#F59E0B",
+  DELETE: "#EF4444",
+  PATCH: "#8B5CF6",
 };
 
-// 方法对应的半透明填充色（用于空心端口）
-const METHOD_BG_VAR: Record<string, string> = {
-  GET: "var(--lunar-method-get-bg)",
-  POST: "var(--lunar-method-post-bg)",
-  PUT: "var(--lunar-method-put-bg)",
-  DELETE: "var(--lunar-method-delete-bg)",
-  PATCH: "var(--lunar-method-put-bg)",
-};
-
-const PORT_SIZE = 8;
-const PORT_GAP = 14;
+const PORT_SIZE = 10;
+const PORT_GAP = 16;
 
 export default memo(function ProjectNode({ data }: { data: ProjectNodeData }) {
   const nodeHeight = Math.max(
     40,
     Math.max(data.exposed.length, data.consumed.length) * PORT_GAP + 20
   );
-
-  const tooltip = [
-    `${data.name} (${data.type})`,
-    `Exposed: ${data.exposed.length}`,
-    ...data.exposed.map(p => `  ${p.method} ${p.path} [${p.status}]`),
-    `Consumed: ${data.consumed.length}`,
-    ...data.consumed.map(p => `  ${p.method} ${p.path} → ${p.targetProject || "?"} [${p.status}]`),
-  ].join("\n");
 
   let borderColor = `var(--lunar-node-border-${data.type})`;
   let boxShadow = "none";
@@ -62,9 +45,17 @@ export default memo(function ProjectNode({ data }: { data: ProjectNodeData }) {
     boxShadow = "0 0 12px rgba(255,255,255,0.25)";
   }
 
+  // 将方法颜色的十六进制转换为 rgba 用于外圈光晕
+  const toRgba = (hex: string, alpha: number) => {
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+
   return (
     <div
-      title={tooltip}
+      title={`${data.name} (${data.type})\nExposed: ${data.exposed.length}\nConsumed: ${data.consumed.length}`}
       style={{
         background: "var(--lunar-node-bg)",
         color: "var(--lunar-text-primary)",
@@ -88,54 +79,62 @@ export default memo(function ProjectNode({ data }: { data: ProjectNodeData }) {
 
       {/* Exposed ports (left) */}
       <div style={{ position: "absolute", left: -PORT_SIZE / 2, top: 10, display: "flex", flexDirection: "column", gap: PORT_GAP - PORT_SIZE }}>
-        {data.exposed.map((p, i) => (
-          <Handle
-            key={`exp-${i}`}
-            type="target"
-            position={Position.Left}
-            id={`exp-${i}`}
-            style={{
-              width: PORT_SIZE,
-              height: PORT_SIZE,
-              background: p.status === "unused"
-                ? (METHOD_BG_VAR[p.method] || "rgba(107, 114, 128, 0.1)")
-                : (METHOD_VAR[p.method] || "#6B7280"),
-              border: `2px solid ${p.status === "unused" ? "var(--lunar-text-secondary)" : (METHOD_VAR[p.method] || "#6B7280")}`,
-              borderRadius: "50%",
-              position: "relative",
-              left: 0,
-              top: 0,
-              transform: "none",
-              pointerEvents: "none",
-            }}
-          />
-        ))}
+        {data.exposed.map((p, i) => {
+          const color = METHOD_COLORS[p.method] || "#6B7280";
+          const isUnused = p.status === "unused";
+          return (
+            <Handle
+              key={`exp-${i}`}
+              type="target"
+              position={Position.Left}
+              id={`exp-${i}`}
+              style={{
+                width: PORT_SIZE,
+                height: PORT_SIZE,
+                background: isUnused ? "var(--lunar-theme-bg)" : color,
+                border: `3px solid ${color}`,
+                borderRadius: "50%",
+                position: "relative",
+                left: 0,
+                top: 0,
+                transform: "none",
+                pointerEvents: "none",
+                // 空心端口：方法色外圈光晕，强化视觉存在感
+                boxShadow: isUnused ? `0 0 0 3px ${toRgba(color, 0.35)}` : "none",
+              }}
+            />
+          );
+        })}
       </div>
 
       {/* Consumed ports (right) */}
       <div style={{ position: "absolute", right: -PORT_SIZE / 2, top: 10, display: "flex", flexDirection: "column", gap: PORT_GAP - PORT_SIZE }}>
-        {data.consumed.map((p, i) => (
-          <Handle
-            key={`con-${i}`}
-            type="source"
-            position={Position.Right}
-            id={`con-${i}`}
-            style={{
-              width: PORT_SIZE,
-              height: PORT_SIZE,
-              background: p.status === "orphaned"
-                ? (METHOD_BG_VAR[p.method] || "rgba(245, 158, 11, 0.1)")
-                : (METHOD_VAR[p.method] || "#6B7280"),
-              border: `2px solid ${p.status === "orphaned" ? "#F59E0B" : (METHOD_VAR[p.method] || "#6B7280")}`,
-              borderRadius: p.status === "orphaned" ? "30%" : "50%",
-              position: "relative",
-              right: 0,
-              top: 0,
-              transform: "none",
-              pointerEvents: "none",
-            }}
-          />
-        ))}
+        {data.consumed.map((p, i) => {
+          const color = METHOD_COLORS[p.method] || "#6B7280";
+          const isOrphaned = p.status === "orphaned";
+          return (
+            <Handle
+              key={`con-${i}`}
+              type="source"
+              position={Position.Right}
+              id={`con-${i}`}
+              style={{
+                width: PORT_SIZE,
+                height: PORT_SIZE,
+                background: isOrphaned ? "var(--lunar-theme-bg)" : color,
+                border: `3px solid ${isOrphaned ? "#F59E0B" : color}`,
+                borderRadius: isOrphaned ? "30%" : "50%",
+                position: "relative",
+                right: 0,
+                top: 0,
+                transform: "none",
+                pointerEvents: "none",
+                // 悬空端口：黄色外圈光晕
+                boxShadow: isOrphaned ? "0 0 0 3px rgba(245, 158, 11, 0.35)" : "none",
+              }}
+            />
+          );
+        })}
       </div>
     </div>
   );

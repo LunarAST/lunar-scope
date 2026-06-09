@@ -7,9 +7,7 @@
       "sha": "aaa111",
       "scanStatus": "success",
       "interfaces": {
-        "exposed": [
-          {"path": "/gateway/health", "method": "GET"}
-        ],
+        "exposed": [{"path": "/gateway/health", "method": "GET"}],
         "consumed": [
           {"path": "/users", "method": "GET", "targetProject": "user-service"},
           {"path": "/users", "method": "POST", "targetProject": "user-service"},
@@ -29,9 +27,7 @@
           {"path": "/auth/login", "method": "POST"},
           {"path": "/auth/debug", "method": "GET"}
         ],
-        "consumed": [
-          {"path": "/users", "method": "GET", "targetProject": "user-service"}
-        ]
+        "consumed": [{"path": "/users", "method": "GET", "targetProject": "user-service"}]
       }
     },
     {
@@ -45,9 +41,7 @@
           {"path": "/users", "method": "POST"},
           {"path": "/users/legacy", "method": "DELETE"}
         ],
-        "consumed": [
-          {"path": "/auth/verify", "method": "GET", "targetProject": "auth-service"}
-        ]
+        "consumed": [{"path": "/auth/verify", "method": "GET", "targetProject": "auth-service"}]
       }
     },
     {
@@ -56,9 +50,7 @@
       "sha": "ddd444",
       "scanStatus": "failed",
       "interfaces": {
-        "exposed": [
-          {"path": "/orders", "method": "POST"}
-        ],
+        "exposed": [{"path": "/orders", "method": "POST"}],
         "consumed": []
       }
     }
@@ -72,11 +64,45 @@
     {"clientProject": "api-gateway", "serverProject": "order-service", "path": "/orders", "method": "POST", "status": "Unverified"}
   ],
   "aggregatedEdges": [
-    {"clientProject": "api-gateway", "serverProject": "user-service", "callCount": 2, "status": "Aligned", "paths": ["GET /users", "POST /users"]},
-    {"clientProject": "api-gateway", "serverProject": "auth-service", "callCount": 1, "status": "Aligned", "paths": ["GET /auth/verify"]},
-    {"clientProject": "auth-service", "serverProject": "user-service", "callCount": 1, "status": "Aligned", "paths": ["GET /users"]},
-    {"clientProject": "user-service", "serverProject": "auth-service", "callCount": 1, "status": "Aligned", "paths": ["GET /auth/verify"]},
-    {"clientProject": "api-gateway", "serverProject": "order-service", "callCount": 1, "status": "Unverified", "paths": ["POST /orders"]}
+    {
+      "clientProject": "api-gateway", "serverProject": "user-service",
+      "callCount": 2, "status": "Aligned",
+      "paths": ["GET /users", "POST /users"],
+      "ports": [
+        {"path": "/users", "method": "GET", "status": "Aligned", "sourcePortIndex": 0, "targetPortIndex": 0},
+        {"path": "/users", "method": "POST", "status": "Aligned", "sourcePortIndex": 1, "targetPortIndex": 1}
+      ]
+    },
+    {
+      "clientProject": "api-gateway", "serverProject": "auth-service",
+      "callCount": 1, "status": "Aligned",
+      "paths": ["GET /auth/verify"],
+      "ports": [
+        {"path": "/auth/verify", "method": "GET", "status": "Aligned", "sourcePortIndex": 2, "targetPortIndex": 0}
+      ]
+    },
+    {
+      "clientProject": "auth-service", "serverProject": "user-service",
+      "callCount": 1, "status": "Aligned",
+      "paths": ["GET /users"],
+      "ports": [
+        {"path": "/users", "method": "GET", "status": "Aligned", "sourcePortIndex": 0, "targetPortIndex": 0}
+      ]
+    },
+    {
+      "clientProject": "user-service", "serverProject": "auth-service",
+      "callCount": 1, "status": "Aligned",
+      "paths": ["GET /auth/verify"],
+      "ports": [
+        {"path": "/auth/verify", "method": "GET", "status": "Aligned", "sourcePortIndex": 0, "targetPortIndex": 0}
+      ]
+    },
+    {
+      "clientProject": "api-gateway", "serverProject": "order-service",
+      "callCount": 1, "status": "Unverified",
+      "paths": ["POST /orders"],
+      "ports": []
+    }
   ],
   "anomalies": {
     "unusedEndpoints": [

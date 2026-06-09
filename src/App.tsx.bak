@@ -107,7 +107,7 @@ function App() {
 
           if (e.ports && e.ports.length > 0) {
             const baseStyle = STATUS_STYLE[e.status] ?? STATUS_STYLE.Aligned;
-            // 背景引导线：心跳流动，淡色，无箭头
+            // Background guide line: heartbeat flow, dimmed, no arrow
             rawEdges.push({
               id: `${baseId}-guide`,
               source: e.clientProject,
@@ -115,10 +115,10 @@ function App() {
               animated: true,
               style: { stroke: baseStyle.stroke, strokeWidth: 1.5, opacity: 0.2 },
               selectable: false,
-              focusable: false,
+              focusable: false, style: { ...e.style, pointerEvents: "none" }
             });
 
-            // 端口级精确连线
+            // Port-level precise edges
             e.ports.forEach((port) => {
               const portStyle = STATUS_STYLE[port.status] ?? STATUS_STYLE.Aligned;
               rawEdges.push({
@@ -129,10 +129,11 @@ function App() {
                 targetHandle: `exp-${port.targetPortIndex}`,
                 style: { stroke: portStyle.stroke, strokeWidth: 1.5 },
                 markerEnd: { type: MarkerType.ArrowClosed, color: portStyle.stroke, width: 14, height: 14 },
+                selectable: true,
               });
             });
           } else {
-            // 向后兼容：无 ports 时用聚合边
+            // Backward compatibility: no ports, use old aggregated edge
             const baseStyle = STATUS_STYLE[e.status] ?? STATUS_STYLE.Aligned;
             rawEdges.push({
               id: baseId,
@@ -169,7 +170,7 @@ function App() {
   const onNodesChange = useCallback((c: NodeChange[]) => setNodes((n) => applyNodeChanges(c, n)), []);
   const onEdgesChange = useCallback((c: EdgeChange[]) => setEdges((e) => applyEdgeChanges(c, e)), []);
 
-  // 去除后缀还原基础 ID，用于映射查找
+  // FIX: strip -guide / -port-* suffix to recover base ID for edge map lookup
   const onEdgeClick = useCallback((_: React.MouseEvent, e: Edge) => {
     const baseId = e.id.replace(/-guide$/, '').replace(/-port-\d+-\d+$/, '');
     const agg = edgeMapRef.current.get(baseId);
@@ -208,30 +209,35 @@ function App() {
     const isSelected = selectedEdge && baseId.startsWith(`${selectedEdge.clientProject}->${selectedEdge.serverProject}-`);
     const isHovered = e.id === hoveredEdgeId;
 
-    // 引导线：选中时提亮加粗，保持流动；未选中时极淡
     if (isGuideLine) {
+      const baseStroke = (e.style as any)?.stroke ?? "var(--lunar-edge-aligned)";
       return {
         ...e,
         style: {
           ...e.style,
-          stroke: isSelected ? "#ffffffcc" : (e.style as any)?.stroke,
+          stroke: isSelected ? "#ffffff99" : baseStroke,
           strokeWidth: isSelected ? 2.5 : 1.5,
-          opacity: isSelected ? 0.6 : 0.12,
-          transition: "all 0.2s",
+          opacity: isSelected ? 0.5 : 0.15,
+          transition: "opacity 0.2s, stroke 0.2s, stroke-width 0.2s",
+        },
+        ...e,
+        style: {
+          ...e.style,
+          opacity: isSelected ? 0.4 : 0.18,
+          transition: "opacity 0.2s",
         },
       };
     }
 
-    // 普通端口线或聚合线
+    const isFocused = !selectedEdge || isSelected;
     return {
       ...e,
-      animated: !!isSelected,  // 选中时流动
       style: {
         ...e.style,
-        opacity: (!selectedEdge || isSelected) ? 1 : 0.12,
+        opacity: isFocused ? 1 : 0.12,
         strokeWidth: isHovered || isSelected ? 2 : 1.5,
-        stroke: isHovered ? "#ffffff" : (e.style as any)?.stroke,
-        transition: "all 0.2s",
+        stroke: isHovered ? "#ffffff" : (e.style as any)?.stroke ?? "var(--lunar-edge-aligned)",
+        transition: "opacity 0.2s, stroke-width 0.2s, stroke 0.2s",
       },
     };
   }), [edges, selectedEdge, hoveredEdgeId]);
@@ -261,7 +267,7 @@ function App() {
         <Controls />
       </ReactFlow>
 
-      {/* 异常面板按钮 */}
+      {/* Anomalies toggle button */}
       <button onClick={() => setShowAnomalies(!showAnomalies)} style={{
         position: "fixed", left: showAnomalies ? 328 : 12, top: 12, zIndex: 910,
         background: "var(--lunar-card-bg)", border: "1px solid var(--lunar-card-border)",
@@ -274,7 +280,7 @@ function App() {
         {totalAnomalies > 0 && <span style={{ fontWeight: 700, color: "#F59E0B" }}>{totalAnomalies}</span>}
       </button>
 
-      {/* 异常面板 */}
+      {/* Anomalies panel */}
       <div style={{
         position: "fixed", left: showAnomalies ? 0 : -320, top: 0, width: 320, height: "100vh",
         background: "var(--lunar-card-bg)", borderRight: "1px solid var(--lunar-card-border)",
@@ -331,7 +337,7 @@ function App() {
         </div>
       </div>
 
-      {/* 边信息卡片 */}
+      {/* Edge info card */}
       {selectedEdge && !selectedNode && (
         <div style={{ position: "fixed", top: 12, right: 12, background: "var(--lunar-card-bg)", border: "1px solid var(--lunar-card-border)", borderRadius: 8, padding: 14, color: "var(--lunar-text-primary)", fontSize: 12, zIndex: 1000, boxShadow: "0 4px 16px rgba(0,0,0,0.5)", maxWidth: 320 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -344,7 +350,7 @@ function App() {
               const mStyle = METHOD_BADGE[a.method] ?? { bg: "#27272a", text: "#e5e7eb", border: "#3f3f46" };
               return (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, padding: "4px 0" }}>
-                  <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 4, background: METHOD_COLORS[a.method] || "#6B7280", flexShrink: 0 }} />
+                  <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 4, background: METHOD_COLORS[a.method] || "#6B7280", flexShrink: 0 }} />
                   <span style={{ color: METHOD_COLORS[a.method] || "var(--lunar-text-secondary)", fontWeight: 600, flexShrink: 0 }}>{a.method}</span>
                   <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace", wordBreak: "break-all" }}>{a.path}</span>
                 </div>
@@ -355,7 +361,7 @@ function App() {
         </div>
       )}
 
-      {/* 节点信息卡片 */}
+      {/* Node info card */}
       {selectedNode && (
         <div style={{ position: "fixed", top: 12, right: 12, background: "var(--lunar-card-bg)", border: "1px solid var(--lunar-card-border)", borderRadius: 8, padding: 14, color: "var(--lunar-text-primary)", fontSize: 12, zIndex: 1000, boxShadow: "0 4px 16px rgba(0,0,0,0.5)", maxWidth: 360 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
@@ -369,9 +375,9 @@ function App() {
               return (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, padding: "3px 0 3px 8px" }}>
                   <span style={{
-                    display: "inline-block", width: 10, height: 10, borderRadius: "50%", flexShrink: 0,
-                    background: status === "unused" ? "var(--lunar-theme-bg)"   : (METHOD_COLORS[e.method] || "#6B7280"),
-                    border: `3px solid ${status === "unused" ? (METHOD_COLORS[e.method] || "#6B7280") : (METHOD_COLORS[e.method] || "#6B7280")}`,
+                    display: "inline-block", width: 8, height: 8, borderRadius: "50%", flexShrink: 0,
+                    background: status === "unused" ? (METHOD_COLORS[e.method] ? METHOD_COLORS[e.method].replace(")", ", 0.25)").replace("var(", "var(") : "rgba(107, 114, 128, 0.25)") : (METHOD_COLORS[e.method] || "#6B7280"),
+                    border: `2px solid ${status === "unused" ? "var(--lunar-text-secondary)" : (METHOD_COLORS[e.method] || "#6B7280")}`,
                   }} />
                   <span style={{ color: METHOD_COLORS[e.method] || "var(--lunar-text-secondary)", fontWeight: 600, flexShrink: 0 }}>{e.method}</span>
                   <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace", wordBreak: "break-all" }}>{e.path}</span>
@@ -387,10 +393,10 @@ function App() {
               return (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, padding: "3px 0 3px 8px" }}>
                   <span style={{
-                    display: "inline-block", width: 10, height: 10, flexShrink: 0,
+                    display: "inline-block", width: 8, height: 8, flexShrink: 0,
                     borderRadius: status === "orphaned" ? "30%" : "50%",
-                    background: status === "orphaned" ? "var(--lunar-theme-bg)"  : (METHOD_COLORS[e.method] || "#6B7280"),
-                    border: `3px solid ${status === "orphaned" ? "#F59E0B" : (METHOD_COLORS[e.method] || "#6B7280")}`,
+                    background: status === "orphaned" ? (METHOD_BG_COLORS[e.method] || "rgba(245, 158, 11, 0.1)") : (METHOD_COLORS[e.method] || "#6B7280"),
+                    border: `2px solid ${status === "orphaned" ? "#F59E0B" : (METHOD_COLORS[e.method] || "#6B7280")}`,
                   }} />
                   <span style={{ color: METHOD_COLORS[e.method] || "var(--lunar-text-secondary)", fontWeight: 600, flexShrink: 0 }}>{e.method}</span>
                   <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace", wordBreak: "break-all" }}>{e.path}</span>
