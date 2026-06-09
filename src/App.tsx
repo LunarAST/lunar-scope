@@ -9,6 +9,7 @@ import "@xyflow/react/dist/style.css";
 import type { LunarMap, AggregatedEdge, ProjectInfo, AnomalyEndpoint } from "./types";
 import ProjectNode from "./ProjectNode";
 import { computeLayout } from "./layout";
+import { getIndicatorStyle } from "./portStyles";
 
 const nodeTypes = { projectNode: ProjectNode };
 
@@ -32,12 +33,6 @@ const METHOD_COLORS: Record<string, string> = {
   GET: "var(--lunar-method-get-text)", POST: "var(--lunar-method-post-text)",
   PUT: "var(--lunar-method-put-text)", DELETE: "var(--lunar-method-delete-text)",
   PATCH: "var(--lunar-method-put-text)",
-};
-
-const METHOD_BG_COLORS: Record<string, string> = {
-  GET: "var(--lunar-method-get-bg)", POST: "var(--lunar-method-post-bg)",
-  PUT: "var(--lunar-method-put-bg)", DELETE: "var(--lunar-method-delete-bg)",
-  PATCH: "var(--lunar-method-put-bg)",
 };
 
 function determinePortStatus(method: string, path: string, project: string, isExposed: boolean, data: LunarMap): "aligned" | "orphaned" | "unused" | "mismatch" {
@@ -107,7 +102,6 @@ function App() {
 
           if (e.ports && e.ports.length > 0) {
             const baseStyle = STATUS_STYLE[e.status] ?? STATUS_STYLE.Aligned;
-            // 背景引导线：心跳流动，淡色，无箭头
             rawEdges.push({
               id: `${baseId}-guide`,
               source: e.clientProject,
@@ -118,7 +112,6 @@ function App() {
               focusable: false,
             });
 
-            // 端口级精确连线
             e.ports.forEach((port) => {
               const portStyle = STATUS_STYLE[port.status] ?? STATUS_STYLE.Aligned;
               rawEdges.push({
@@ -132,7 +125,6 @@ function App() {
               });
             });
           } else {
-            // 向后兼容：无 ports 时用聚合边
             const baseStyle = STATUS_STYLE[e.status] ?? STATUS_STYLE.Aligned;
             rawEdges.push({
               id: baseId,
@@ -169,7 +161,6 @@ function App() {
   const onNodesChange = useCallback((c: NodeChange[]) => setNodes((n) => applyNodeChanges(c, n)), []);
   const onEdgesChange = useCallback((c: EdgeChange[]) => setEdges((e) => applyEdgeChanges(c, e)), []);
 
-  // 去除后缀还原基础 ID，用于映射查找
   const onEdgeClick = useCallback((_: React.MouseEvent, e: Edge) => {
     const baseId = e.id.replace(/-guide$/, '').replace(/-port-\d+-\d+$/, '');
     const agg = edgeMapRef.current.get(baseId);
@@ -208,7 +199,6 @@ function App() {
     const isSelected = selectedEdge && baseId.startsWith(`${selectedEdge.clientProject}->${selectedEdge.serverProject}-`);
     const isHovered = e.id === hoveredEdgeId;
 
-    // 引导线：选中时提亮加粗，保持流动；未选中时极淡
     if (isGuideLine) {
       return {
         ...e,
@@ -222,10 +212,9 @@ function App() {
       };
     }
 
-    // 普通端口线或聚合线
     return {
       ...e,
-      animated: !!isSelected,  // 选中时流动
+      animated: !!isSelected,
       style: {
         ...e.style,
         opacity: (!selectedEdge || isSelected) ? 1 : 0.12,
@@ -301,6 +290,7 @@ function App() {
               {data.anomalies.unusedEndpoints.map((ep, i) => (
                 <div key={i} onClick={() => { setHighlightAnomaly(ep); setSelectedEdge(null); setSelectedNode(null); }}
                   style={{ padding: "10px 10px", marginBottom: 4, background: highlightAnomaly === ep ? "#27272a" : "transparent", borderRadius: 4, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, fontSize: 12, lineHeight: "18px", border: highlightAnomaly === ep ? "1px solid var(--lunar-text-secondary)" : "1px solid transparent", transition: "background 0.15s" }}>
+                  <span style={getIndicatorStyle(ep.method, "unused")} />
                   <span style={{ color: "var(--lunar-text-muted)", fontWeight: "bold", width: 36, flexShrink: 0 }}>{ep.method}</span>
                   <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace", wordBreak: "break-all" }}>{ep.path}</span>
                   <span style={{ marginLeft: "auto", color: "var(--lunar-text-muted)", fontSize: 10, flexShrink: 0 }}>{ep.project}</span>
@@ -316,6 +306,7 @@ function App() {
               {data.anomalies.orphanedConsumers.map((ep, i) => (
                 <div key={i} onClick={() => { setHighlightAnomaly(ep); setSelectedEdge(null); setSelectedNode(null); }}
                   style={{ padding: "10px 10px", marginBottom: 4, background: highlightAnomaly === ep ? "#27272a" : "transparent", borderRadius: 4, cursor: "pointer", display: "flex", alignItems: "center", gap: 8, fontSize: 12, lineHeight: "18px", border: highlightAnomaly === ep ? "1px solid #F59E0B55" : "1px solid transparent", transition: "background 0.15s" }}>
+                  <span style={getIndicatorStyle(ep.method, "orphaned")} />
                   <span style={{ color: "#F59E0B", fontWeight: "bold", width: 36, flexShrink: 0 }}>{ep.method}</span>
                   <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace", wordBreak: "break-all" }}>{ep.path}</span>
                   <span style={{ marginLeft: "auto", color: "#F59E0B", fontSize: 10, flexShrink: 0 }}>{ep.project}</span>
@@ -344,7 +335,7 @@ function App() {
               const mStyle = METHOD_BADGE[a.method] ?? { bg: "#27272a", text: "#e5e7eb", border: "#3f3f46" };
               return (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, padding: "4px 0" }}>
-                  <span style={{ display: "inline-block", width: 10, height: 10, borderRadius: 4, background: METHOD_COLORS[a.method] || "#6B7280", flexShrink: 0 }} />
+                  <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 4, background: METHOD_COLORS[a.method] || "#6B7280", flexShrink: 0 }} />
                   <span style={{ color: METHOD_COLORS[a.method] || "var(--lunar-text-secondary)", fontWeight: 600, flexShrink: 0 }}>{a.method}</span>
                   <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace", wordBreak: "break-all" }}>{a.path}</span>
                 </div>
@@ -368,11 +359,7 @@ function App() {
               const status = data ? determinePortStatus(e.method, e.path, selectedNode.name, true, data) : "aligned";
               return (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, padding: "3px 0 3px 8px" }}>
-                  <span style={{
-                    display: "inline-block", width: 10, height: 10, borderRadius: "50%", flexShrink: 0,
-                    background: status === "unused" ? "var(--lunar-theme-bg)"   : (METHOD_COLORS[e.method] || "#6B7280"),
-                    border: `3px solid ${status === "unused" ? (METHOD_COLORS[e.method] || "#6B7280") : (METHOD_COLORS[e.method] || "#6B7280")}`,
-                  }} />
+                  <span style={getIndicatorStyle(e.method, status)} />
                   <span style={{ color: METHOD_COLORS[e.method] || "var(--lunar-text-secondary)", fontWeight: 600, flexShrink: 0 }}>{e.method}</span>
                   <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace", wordBreak: "break-all" }}>{e.path}</span>
                   {status === "unused" && <span style={{ color: "var(--lunar-text-muted)", fontSize: 10, flexShrink: 0 }}>(unused)</span>}
@@ -386,12 +373,7 @@ function App() {
               const status = data ? determinePortStatus(e.method, e.path, selectedNode.name, false, data) : "aligned";
               return (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, padding: "3px 0 3px 8px" }}>
-                  <span style={{
-                    display: "inline-block", width: 10, height: 10, flexShrink: 0,
-                    borderRadius: status === "orphaned" ? "30%" : "50%",
-                    background: status === "orphaned" ? "var(--lunar-theme-bg)"  : (METHOD_COLORS[e.method] || "#6B7280"),
-                    border: `3px solid ${status === "orphaned" ? "#F59E0B" : (METHOD_COLORS[e.method] || "#6B7280")}`,
-                  }} />
+                  <span style={getIndicatorStyle(e.method, status)} />
                   <span style={{ color: METHOD_COLORS[e.method] || "var(--lunar-text-secondary)", fontWeight: 600, flexShrink: 0 }}>{e.method}</span>
                   <span style={{ color: "var(--lunar-text-primary)", fontFamily: "monospace", wordBreak: "break-all" }}>{e.path}</span>
                   {e.targetProject && <span style={{ color: "var(--lunar-text-muted)", fontSize: 10, flexShrink: 0 }}>→ {e.targetProject}</span>}

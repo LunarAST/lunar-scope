@@ -1,5 +1,6 @@
 import { memo } from "react";
 import { Handle, Position } from "@xyflow/react";
+import { getHandleStyle } from "./portStyles";
 
 interface PortInfo {
   method: string;
@@ -18,15 +19,6 @@ interface ProjectNodeData {
   isHovered?: boolean;
 }
 
-const METHOD_COLORS: Record<string, string> = {
-  GET: "#10B981",
-  POST: "#3B82F6",
-  PUT: "#F59E0B",
-  DELETE: "#EF4444",
-  PATCH: "#8B5CF6",
-};
-
-const PORT_SIZE = 10;
 const PORT_GAP = 16;
 
 export default memo(function ProjectNode({ data }: { data: ProjectNodeData }) {
@@ -44,14 +36,6 @@ export default memo(function ProjectNode({ data }: { data: ProjectNodeData }) {
     borderColor = "#ffffff";
     boxShadow = "0 0 12px rgba(255,255,255,0.25)";
   }
-
-  // 将方法颜色的十六进制转换为 rgba 用于外圈光晕
-  const toRgba = (hex: string, alpha: number) => {
-    const r = parseInt(hex.slice(1, 3), 16);
-    const g = parseInt(hex.slice(3, 5), 16);
-    const b = parseInt(hex.slice(5, 7), 16);
-    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
-  };
 
   return (
     <div
@@ -78,63 +62,29 @@ export default memo(function ProjectNode({ data }: { data: ProjectNodeData }) {
       <span>{data.name}</span>
 
       {/* Exposed ports (left) */}
-      <div style={{ position: "absolute", left: -PORT_SIZE / 2, top: 10, display: "flex", flexDirection: "column", gap: PORT_GAP - PORT_SIZE }}>
-        {data.exposed.map((p, i) => {
-          const color = METHOD_COLORS[p.method] || "#6B7280";
-          const isUnused = p.status === "unused";
-          return (
-            <Handle
-              key={`exp-${i}`}
-              type="target"
-              position={Position.Left}
-              id={`exp-${i}`}
-              style={{
-                width: PORT_SIZE,
-                height: PORT_SIZE,
-                background: isUnused ? "var(--lunar-theme-bg)" : color,
-                border: `3px solid ${color}`,
-                borderRadius: "50%",
-                position: "relative",
-                left: 0,
-                top: 0,
-                transform: "none",
-                pointerEvents: "none",
-                // 空心端口：方法色外圈光晕，强化视觉存在感
-                boxShadow: isUnused ? `0 0 0 3px ${toRgba(color, 0.35)}` : "none",
-              }}
-            />
-          );
-        })}
+      <div style={{ position: "absolute", left: -5, top: 10, display: "flex", flexDirection: "column", gap: PORT_GAP - 10 }}>
+        {data.exposed.map((p, i) => (
+          <Handle
+            key={`exp-${i}`}
+            type="target"
+            position={Position.Left}
+            id={`exp-${i}`}
+            style={getHandleStyle(p.method, p.status)}
+          />
+        ))}
       </div>
 
       {/* Consumed ports (right) */}
-      <div style={{ position: "absolute", right: -PORT_SIZE / 2, top: 10, display: "flex", flexDirection: "column", gap: PORT_GAP - PORT_SIZE }}>
-        {data.consumed.map((p, i) => {
-          const color = METHOD_COLORS[p.method] || "#6B7280";
-          const isOrphaned = p.status === "orphaned";
-          return (
-            <Handle
-              key={`con-${i}`}
-              type="source"
-              position={Position.Right}
-              id={`con-${i}`}
-              style={{
-                width: PORT_SIZE,
-                height: PORT_SIZE,
-                background: isOrphaned ? "var(--lunar-theme-bg)" : color,
-                border: `3px solid ${isOrphaned ? "#F59E0B" : color}`,
-                borderRadius: isOrphaned ? "30%" : "50%",
-                position: "relative",
-                right: 0,
-                top: 0,
-                transform: "none",
-                pointerEvents: "none",
-                // 悬空端口：黄色外圈光晕
-                boxShadow: isOrphaned ? "0 0 0 3px rgba(245, 158, 11, 0.35)" : "none",
-              }}
-            />
-          );
-        })}
+      <div style={{ position: "absolute", right: -5, top: 10, display: "flex", flexDirection: "column", gap: PORT_GAP - 10 }}>
+        {data.consumed.map((p, i) => (
+          <Handle
+            key={`con-${i}`}
+            type="source"
+            position={Position.Right}
+            id={`con-${i}`}
+            style={getHandleStyle(p.method, p.status, true)}
+          />
+        ))}
       </div>
     </div>
   );
