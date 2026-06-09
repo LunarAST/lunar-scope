@@ -61,6 +61,26 @@ All paths use the standard format: `/{segment}` for literals, `/{paramName}` for
 | `Unverified` | Dim gray dashed line (`#6B7280`) | Hover shows "Data source unavailable due to CI scan failure". |
 | `Unused` (Port-level) | Slate Gray Exposed Port (`#4B5563`) | Renders directly on the Exposed Port as an unused badge. No edge connection. |
 
+### 3.3.1 Port Indicator Design Language
+
+Every interface port (endpoint) in `lunar-scope` follows a three-layer visual encoding, fully decoupled via CSS custom properties.
+
+| Status | Fill | Border | Outer Glow | Shape (Exposed) | Shape (Consumed) |
+|:---|:---|:---|:---|:---|:---|
+| `aligned` | Solid method color | Method color | None | Circle | Circle |
+| `unused` | Hollow (theme background) | Method color | Red (`#EF4444`) | Circle | N/A |
+| `orphaned` | Hollow (theme background) | Method color | Yellow (`#F59E0B`) | N/A | Diamond |
+| `mismatch` | Solid method color | Method color | Red (`#EF4444`) | Circle | Circle |
+
+**Layer definitions:**
+
+- **Fill (background)**: Solid method color if aligned; theme canvas color if unused or orphaned, creating a hollow appearance.
+- **Border**: Always the method color, preserving HTTP verb identity (GET green, POST blue, DELETE red, etc.).
+- **Outer Glow (boxShadow)**: None if aligned; red glow if unused; yellow glow if orphaned. Provides an instant status signal without obscuring the method color.
+- **Shape**: Circle for all exposed ports and aligned consumed ports; diamond (30% border-radius) for orphaned consumed ports, reinforcing the "broken connection" metaphor.
+
+**Implementation**: All color values reference CSS custom properties (e.g., `var(--lunar-method-get-text)`) and are centralized in `src/portStyles.ts`, ensuring `ProjectNode` handles and card indicators render identically from a single source of truth.
+
 ### 3.4 Composite Edge Aggregation
 - Multiple alignments between the same client-server pair are rendered as a single composite edge.
 - Edge label shows call count (e.g., `12 Calls`).
