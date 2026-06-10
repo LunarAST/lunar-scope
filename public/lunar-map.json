@@ -2,112 +2,50 @@
   "version": "0.5.0",
   "projects": [
     {
-      "name": "api-gateway",
-      "type": "client",
-      "sha": "aaa111",
+      "name": "cellrix",
+      "type": "mixed",
+      "sha": "unknown",
       "scanStatus": "success",
       "interfaces": {
-        "exposed": [{"path": "/gateway/health", "method": "GET"}],
-        "consumed": [
-          {"path": "/users", "method": "GET", "targetProject": "user-service"},
-          {"path": "/users", "method": "POST", "targetProject": "user-service"},
-          {"path": "/auth/verify", "method": "GET", "targetProject": "auth-service"},
-          {"path": "/orders", "method": "POST", "targetProject": "order-service"}
+        "consumed": [],
+        "exposed": []
+      }
+    },
+    {
+      "name": "helix-mind",
+      "type": "mixed",
+      "sha": "unknown",
+      "scanStatus": "success",
+      "interfaces": {
+        "consumed": [],
+        "exposed": []
+      }
+    },
+    {
+      "name": "anaphase-helix",
+      "type": "mixed",
+      "sha": "unknown",
+      "scanStatus": "success",
+      "interfaces": {
+        "consumed": [],
+        "exposed": [
+          {
+            "method": "GET",
+            "path": "/v1/agent/snapshot"
+          }
         ]
       }
-    },
-    {
-      "name": "auth-service",
-      "type": "service",
-      "sha": "bbb222",
-      "scanStatus": "success",
-      "interfaces": {
-        "exposed": [
-          {"path": "/auth/verify", "method": "GET"},
-          {"path": "/auth/login", "method": "POST"},
-          {"path": "/auth/debug", "method": "GET"}
-        ],
-        "consumed": [{"path": "/users", "method": "GET", "targetProject": "user-service"}]
-      }
-    },
-    {
-      "name": "user-service",
-      "type": "service",
-      "sha": "ccc333",
-      "scanStatus": "success",
-      "interfaces": {
-        "exposed": [
-          {"path": "/users", "method": "GET"},
-          {"path": "/users", "method": "POST"},
-          {"path": "/users/legacy", "method": "DELETE"}
-        ],
-        "consumed": [{"path": "/auth/verify", "method": "GET", "targetProject": "auth-service"}]
-      }
-    },
-    {
-      "name": "order-service",
-      "type": "service",
-      "sha": "ddd444",
-      "scanStatus": "failed",
-      "interfaces": {
-        "exposed": [{"path": "/orders", "method": "POST"}],
-        "consumed": []
-      }
     }
   ],
-  "alignments": [
-    {"clientProject": "api-gateway", "serverProject": "user-service", "path": "/users", "method": "GET", "status": "Aligned"},
-    {"clientProject": "api-gateway", "serverProject": "user-service", "path": "/users", "method": "POST", "status": "Aligned"},
-    {"clientProject": "api-gateway", "serverProject": "auth-service", "path": "/auth/verify", "method": "GET", "status": "Aligned"},
-    {"clientProject": "auth-service", "serverProject": "user-service", "path": "/users", "method": "GET", "status": "Aligned"},
-    {"clientProject": "user-service", "serverProject": "auth-service", "path": "/auth/verify", "method": "GET", "status": "Aligned"},
-    {"clientProject": "api-gateway", "serverProject": "order-service", "path": "/orders", "method": "POST", "status": "Unverified"}
-  ],
-  "aggregatedEdges": [
-    {
-      "clientProject": "api-gateway", "serverProject": "user-service",
-      "callCount": 2, "status": "Aligned",
-      "paths": ["GET /users", "POST /users"],
-      "ports": [
-        {"path": "/users", "method": "GET", "status": "Aligned", "sourcePortIndex": 0, "targetPortIndex": 0},
-        {"path": "/users", "method": "POST", "status": "Aligned", "sourcePortIndex": 1, "targetPortIndex": 1}
-      ]
-    },
-    {
-      "clientProject": "api-gateway", "serverProject": "auth-service",
-      "callCount": 1, "status": "Aligned",
-      "paths": ["GET /auth/verify"],
-      "ports": [
-        {"path": "/auth/verify", "method": "GET", "status": "Aligned", "sourcePortIndex": 2, "targetPortIndex": 0}
-      ]
-    },
-    {
-      "clientProject": "auth-service", "serverProject": "user-service",
-      "callCount": 1, "status": "Aligned",
-      "paths": ["GET /users"],
-      "ports": [
-        {"path": "/users", "method": "GET", "status": "Aligned", "sourcePortIndex": 0, "targetPortIndex": 0}
-      ]
-    },
-    {
-      "clientProject": "user-service", "serverProject": "auth-service",
-      "callCount": 1, "status": "Aligned",
-      "paths": ["GET /auth/verify"],
-      "ports": [
-        {"path": "/auth/verify", "method": "GET", "status": "Aligned", "sourcePortIndex": 0, "targetPortIndex": 0}
-      ]
-    },
-    {
-      "clientProject": "api-gateway", "serverProject": "order-service",
-      "callCount": 1, "status": "Unverified",
-      "paths": ["POST /orders"],
-      "ports": []
-    }
-  ],
+  "alignments": [],
+  "aggregatedEdges": [],
   "anomalies": {
     "unusedEndpoints": [
-      {"project": "auth-service", "path": "/auth/debug", "method": "GET"},
-      {"project": "user-service", "path": "/users/legacy", "method": "DELETE"}
+      {
+        "project": "anaphase-helix",
+        "path": "/v1/agent/snapshot",
+        "method": "GET"
+      }
     ],
     "orphanedConsumers": [],
     "crossLayerViolations": []
