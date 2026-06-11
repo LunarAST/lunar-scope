@@ -3,7 +3,7 @@ import { render, screen } from '@testing-library/react';
 import App from './App';
 
 // Mock fetch to prevent network requests in test environment
-global.fetch = vi.fn(() =>
+globalThis.fetch = vi.fn(() =>
   Promise.resolve({
     json: () => Promise.resolve({
       version: "0.5.0",
