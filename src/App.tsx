@@ -1,6 +1,6 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from "react";
 import {
-  ReactFlow, Background, Controls, Handle, Position,
+  ReactFlow, Background, Controls,
   type Node, type Edge, MarkerType,
   type NodeChange, type EdgeChange,
   applyNodeChanges, applyEdgeChanges,
@@ -21,27 +21,13 @@ const STATUS_STYLE: Record<string, { stroke: string }> = {
   Unverified:         { stroke: "var(--lunar-edge-unverified)" },
 };
 
-const METHOD_BADGE: Record<string, { bg: string; text: string; border: string }> = {
-  GET:    { bg: "var(--lunar-method-get-bg)", text: "var(--lunar-method-get-text)", border: "var(--lunar-method-get-border)" },
-  POST:   { bg: "var(--lunar-method-post-bg)", text: "var(--lunar-method-post-text)", border: "var(--lunar-method-post-border)" },
-  PUT:    { bg: "var(--lunar-method-put-bg)", text: "var(--lunar-method-put-text)", border: "var(--lunar-method-put-border)" },
-  PATCH:  { bg: "var(--lunar-method-put-bg)", text: "var(--lunar-method-put-text)", border: "var(--lunar-method-put-border)" },
-  DELETE: { bg: "var(--lunar-method-delete-bg)", text: "var(--lunar-method-delete-text)", border: "var(--lunar-method-delete-border)" },
-};
-
 const METHOD_COLORS: Record<string, string> = {
   GET: "var(--lunar-method-get-text)", POST: "var(--lunar-method-post-text)",
   PUT: "var(--lunar-method-put-text)", DELETE: "var(--lunar-method-delete-text)",
   PATCH: "var(--lunar-method-put-text)",
 };
 
-const METHOD_BG_COLORS: Record<string, string> = {
-  GET: "var(--lunar-method-get-bg)", POST: "var(--lunar-method-post-bg)",
-  PUT: "var(--lunar-method-put-bg)", DELETE: "var(--lunar-method-delete-bg)",
-  PATCH: "var(--lunar-method-put-bg)",
-};
-
-fn determinePortStatus(method: string, path: string, project: string, isExposed: boolean, data: LunarMap) -> "aligned" | "orphaned" | "unused" | "mismatch" {
+function determinePortStatus(method: string, path: string, project: string, isExposed: boolean, data: LunarMap): "aligned" | "orphaned" | "unused" | "mismatch" {
   if (isExposed) {
     const used = data.alignments.some(
       a => a.serverProject === project && a.path === path && a.method === method && a.status !== "Orphaned"
@@ -409,7 +395,6 @@ function App() {
           <div style={{ color: STATUS_STYLE[selectedEdge.status]?.stroke, fontWeight: 600, marginBottom: 6 }}>{selectedEdge.status} · {selectedEdge.callCount} call{selectedEdge.callCount > 1 ? "s" : ""}</div>
           <div style={{ borderTop: "1px solid var(--lunar-card-border)", paddingTop: 6 }}>
             {activeAlignments.slice(0, 5).map((a, i) => {
-              const mStyle = METHOD_BADGE[a.method] ?? { bg: "#27272a", text: "#e5e7eb", border: "#3f3f46" };
               return (
                 <div key={i} style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 4, padding: "4px 0" }}>
                   <span style={{ display: "inline-block", width: 8, height: 8, borderRadius: 4, background: METHOD_COLORS[a.method] || "#6B7280", flexShrink: 0 }} />
