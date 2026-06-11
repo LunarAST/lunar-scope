@@ -12,6 +12,7 @@ interface PortInfo {
 interface ProjectNodeData {
   name: string;
   type: string;
+  path?: string; // [ADDED] Display project physical workspace path
   exposed: PortInfo[];
   consumed: PortInfo[];
   isFocused?: boolean;
@@ -39,7 +40,7 @@ export default memo(function ProjectNode({ data }: { data: ProjectNodeData }) {
 
   return (
     <div
-      title={`${data.name} (${data.type})\nExposed: ${data.exposed.length}\nConsumed: ${data.consumed.length}`}
+      title={`${data.name} (${data.type})\nPath: ${data.path || "N/A"}\nExposed: ${data.exposed.length}\nConsumed: ${data.consumed.length}`}
       style={{
         background: "var(--lunar-node-bg)",
         color: "var(--lunar-text-primary)",

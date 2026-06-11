@@ -41,7 +41,7 @@ const METHOD_BG_COLORS: Record<string, string> = {
   PATCH: "var(--lunar-method-put-bg)",
 };
 
-function determinePortStatus(method: string, path: string, project: string, isExposed: boolean, data: LunarMap): "aligned" | "orphaned" | "unused" | "mismatch" {
+fn determinePortStatus(method: string, path: string, project: string, isExposed: boolean, data: LunarMap) -> "aligned" | "orphaned" | "unused" | "mismatch" {
   if (isExposed) {
     const used = data.alignments.some(
       a => a.serverProject === project && a.path === path && a.method === method && a.status !== "Orphaned"
@@ -85,6 +85,7 @@ function App() {
             data: {
               name: p.name,
               type: p.type,
+              path: p.path, // [ADDED] Map absolute workspace path natively to canvas nodes
               exposed: p.interfaces.exposed.map(e => ({ ...e, status: determinePortStatus(e.method, e.path, p.name, true, d) })),
               consumed: p.interfaces.consumed.map(e => ({ ...e, status: determinePortStatus(e.method, e.path, p.name, false, d) })),
               isFocused: true,
@@ -426,7 +427,14 @@ function App() {
       {selectedNode && (
         <div style={{ position: "fixed", top: 12, right: 12, background: "var(--lunar-card-bg)", border: "1px solid var(--lunar-card-border)", borderRadius: 8, padding: 14, color: "var(--lunar-text-primary)", fontSize: 12, zIndex: 1000, boxShadow: "0 4px 16px rgba(0,0,0,0.5)", maxWidth: 360 }}>
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 8 }}>
-            <div style={{ fontWeight: 600, fontSize: 13 }}>{selectedNode.name} <span style={{ color: "var(--lunar-text-secondary)", fontWeight: 400 }}>({selectedNode.type})</span></div>
+            <div style={{ fontWeight: 600, fontSize: 13 }}>
+              {selectedNode.name} <span style={{ color: "var(--lunar-text-secondary)", fontWeight: 400 }}>({selectedNode.type})</span>
+              {selectedNode.path && (
+                <div style={{ fontSize: 11, color: "var(--lunar-text-muted)", marginTop: 4, fontFamily: "monospace" }}>
+                  Path: {selectedNode.path}
+                </div>
+              )}
+            </div>
             <button onClick={() => setSelectedNode(null)} style={{ background: "none", border: "none", color: "var(--lunar-text-secondary)", fontSize: 18, cursor: "pointer", lineHeight: 1 }}>×</button>
           </div>
           <div style={{ marginBottom: 10 }}>

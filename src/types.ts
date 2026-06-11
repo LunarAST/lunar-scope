@@ -29,6 +29,7 @@ export interface ProjectInfo {
     exposed: InterfaceItem[];
     consumed: InterfaceItem[];
   };
+  path?: string; // [ADDED] Workspace absolute path auto-detected by CLI
 }
 
 export interface AlignmentEntry {
